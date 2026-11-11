@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>虚拟舞台演员动作控制系统 · 回放</title>
+<style>
+  :root { --bg:#10141c; --panel:#181e2a; --line:#2a3346; --fg:#dfe6f3;
+          --dim:#8a97ad; --accent:#5db1ff; --warn:#ffce6b; --ev:#7ee2a8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:13px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",monospace; }
+  header { padding:10px 16px; border-bottom:1px solid var(--line);
+           display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0; }
+  header .meta { color:var(--dim); font-size:12px; }
+  .layout { display:grid; grid-template-columns:minmax(420px,1fr) 360px; gap:12px;
+            padding:12px; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:8px; padding:12px; }
+  canvas { width:100%; height:420px; display:block; background:#0c1018;
+           border-radius:6px; }
+  .controls { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  button { background:#222c40; color:var(--fg); border:1px solid var(--line);
+           border-radius:6px; padding:6px 12px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  input[type=range] { flex:1; min-width:160px; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:3px 0; }
+  .row .k { color:var(--dim); }
+  .badge { display:inline-block; padding:1px 7px; border-radius:10px;
+           background:#223; border:1px solid var(--line); }
+  .state-path { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  .state-path .st { padding:2px 8px; border-radius:5px; background:#1d2638;
+                    border:1px solid var(--line); font-size:12px; }
+  .state-path .st.cur { background:#1c3a5e; border-color:var(--accent);
+                        color:#fff; }
+  .weights .bar { height:8px; background:#222c40; border-radius:4px;
+                  overflow:hidden; margin:3px 0 7px; }
+  .weights .fill { height:100%; background:linear-gradient(90deg,#3d7bd1,#5db1ff); }
+  .events { max-height:170px; overflow:auto; font-size:12px; }
+  .events .e { display:flex; justify-content:space-between; gap:8px;
+               padding:2px 0; border-bottom:1px dotted #232c3d; }
+  .events .e .nm { color:var(--ev); }
+  .events .e .rs { color:var(--warn); }
+  h3 { font-size:12px; color:var(--dim); text-transform:uppercase;
+       letter-spacing:.08em; margin:14px 0 6px; }
+  h3:first-child { margin-top:0; }
+  .basis { color:var(--accent); word-break:break-all; }
+  .seek-flag { color:var(--warn); font-weight:bold; }
+  code { color:var(--warn); }
+</style>
+</head>
+<body>
+<header>
+  <h1>虚拟舞台演员动作控制系统</h1>
+  <span class="meta">固定输入序列回放 · 真实骨骼 FK 求值 · 非预录视频</span>
+  <span class="meta" id="seekMeta"></span>
+</header>
+<div class="layout">
+  <div>
+    <div class="panel">
+      <canvas id="stage" width="720" height="420"></canvas>
+      <div class="controls">
+        <button id="play">⏸ 暂停</button>
+        <button id="stepBack">⏮ 帧</button>
+        <button id="stepFwd">帧 ⏭</button>
+        <input type="range" id="scrub" min="0" max="0" value="0">
+        <span class="meta" id="frameLabel"></span>
+      </div>
+      <div class="row"><span class="k">主时钟 t</span><span id="mTime"></span></div>
+      <div class="row"><span class="k">当前状态</span><span id="mState"></span></div>
+      <div class="row"><span class="k">过渡目标 / 进度</span><span id="mTrans"></span></div>
+      <div class="row"><span class="k">触发依据</span><span class="basis" id="mBasis"></span></div>
+      <div class="row"><span class="k">速率 / 暂停</span><span id="mRate"></span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>当前混合权重</h3>
+    <div class="weights" id="weights"></div>
+    <h3>状态路径</h3>
+    <div class="state-path" id="statePath"></div>
+    <h3>本帧触发事件</h3>
+    <div class="events" id="frameEvents"></div>
+    <h3>全部事件（时间点触发）</h3>
+    <div class="events" id="allEvents"></div>
+  </div>
+</div>
+
+<script>
+// 回放数据由 viewer.py 生成为 window.REPLAY
+const data = window.REPLAY;
+const frames = data.frames;
+const names = data.joint_names;
+const skel = data.skeleton.bones;
+const cv = document.getElementById('stage');
+const ctx = cv.getContext('2d');
+let idx = 0, playing = true, timer = null;
+
+document.getElementById('seekMeta').textContent =
+  `dt=${data.dt.toFixed(4)}s · seek 政策=${data.seek_policy} · ${frames.length} 帧`;
+document.getElementById('scrub').max = frames.length - 1;
+
+// 世界坐标 -> 画布：x 水平（含根运动），y 取高度，自动缩放居中
+function project(p) {
+  const scale = 62, cx = cv.width / 2, ground = cv.height - 50;
+  return [cx + p[0] * scale, ground - p[1] * scale];
+}
+
+function drawSkeleton(frame) {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  // 舞台参考线
+  ctx.strokeStyle = '#1d2738'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, cv.height - 50);
+  ctx.lineTo(cv.width, cv.height - 50); ctx.stroke();
+  ctx.fillStyle = '#33405a'; ctx.font = '11px monospace';
+  ctx.fillText('台心 x=0', cv.width / 2 - 22, cv.height - 56);
+
+  const pos = frame.joint_positions;
+  // 骨骼连线（真实父子层级）
+  ctx.strokeStyle = '#5db1ff'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  for (const b of skel) {
+    if (b.parent < 0) continue;
+    const p1 = project(pos[b.parent]);
+    const p2 = project(pos[names.indexOf(b.name)]);
+    ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+  }
+  // 关节点
+  for (let i = 0; i < pos.length; i++) {
+    const [x, y] = project(pos[i]);
+    ctx.beginPath(); ctx.arc(x, y, i === 0 ? 5 : 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? '#ffce6b' : '#dfe6f3'; ctx.fill();
+  }
+  // 朝向标记（z 轴，投影为小圆，提示面向）
+  const head = project(pos[names.indexOf('head')]);
+  ctx.fillStyle = '#7ee2a8';
+  ctx.beginPath(); ctx.arc(head[0] + 9, head[1], 2.5, 0, Math.PI * 2); ctx.fill();
+}
+
+function render() {
+  const f = frames[idx];
+  drawSkeleton(f);
+  document.getElementById('scrub').value = idx;
+  document.getElementById('frameLabel').textContent =
+    `帧 ${f.frame} / ${frames.length - 1}` + (f.seeked ? '  ⟂ seek' : '');
+  document.getElementById('mTime').textContent = f.time.toFixed(3) + ' s';
+  document.getElementById('mState').innerHTML =
+    `<span class="badge">${f.state}</span>` + (f.seeked ? ' <span class="seek-flag">seek 跳转</span>' : '');
+  document.getElementById('mTrans').textContent =
+    f.transition_target ? `${f.transition_target} (${(f.transition_progress * 100).toFixed(1)}%)` : '—';
+  document.getElementById('mBasis').textContent = f.basis || '—';
+  document.getElementById('mRate').textContent =
+    `rate=${f.rate}${f.paused ? ' · 已暂停（时钟冻结）' : ''}`;
+
+  // 权重条
+  const w = document.getElementById('weights');
+  w.innerHTML = Object.entries(f.weights).map(([k, v]) =>
+    `<div><div class="row"><span class="k">${k}</span><span>${v.toFixed(3)}</span></div>
+     <div class="bar"><div class="fill" style="width:${(v * 100).toFixed(1)}%"></div></div></div>`
+  ).join('') || '<span class="meta">无活动片段</span>';
+
+  // 状态路径高亮
+  const path = [];
+  for (const fr of frames) {
+    if (!path.length || path[path.length - 1] !== fr.state) path.push(fr.state);
+  }
+  document.getElementById('statePath').innerHTML = path.map(s =>
+    `<span class="st ${s === f.state ? 'cur' : ''}">${s}</span>`).join(' → ');
+
+  // 本帧事件
+  document.getElementById('frameEvents').innerHTML = f.events.length
+    ? f.events.map(e =>
+        `<div class="e"><span class="nm">● ${e.name}</span>
+         <span>${e.clip} #${e.cycle}</span>
+         <span class="rs">${e.reason}</span></div>`).join('')
+    : '<span class="meta">（本帧无事件）</span>';
+}
+
+document.getElementById('allEvents').innerHTML = data.all_events.map(e =>
+  `<div class="e"><span class="nm">${e.name}</span>
+   <span>t=${e.time.toFixed(3)}</span><span class="rs">${e.reason}</span></div>`).join('');
+
+function tick() {
+  if (playing) { idx = (idx + 1) % frames.length; render(); }
+}
+function play() {
+  playing = true; document.getElementById('play').textContent = '⏸ 暂停';
+  clearInterval(timer); timer = setInterval(tick, data.dt * 1000);
+}
+function pause() {
+  playing = false; document.getElementById('play').textContent = '▶ 播放';
+  clearInterval(timer);
+}
+document.getElementById('play').onclick = () => playing ? pause() : play();
+document.getElementById('stepFwd').onclick = () => { pause(); idx = Math.min(frames.length - 1, idx + 1); render(); };
+document.getElementById('stepBack').onclick = () => { pause(); idx = Math.max(0, idx - 1); render(); };
+document.getElementById('scrub').oninput = (e) => { pause(); idx = +e.target.value; render(); };
+play(); render();
+</script>
+</body>
+</html>
