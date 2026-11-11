@@ -1,0 +1,173 @@
+{
+ "bundle_sha256": "73634ba29c6ee8e235b58f5d72a1e190b3b044c00974a6410f94e06617916947",
+ "checks": [
+  {
+   "detail": "5 个动作 / 5 个状态",
+   "name": "resource_references",
+   "ok": true
+  },
+  {
+   "detail": "2 个声明参数",
+   "name": "parameter_types",
+   "ok": true
+  },
+  {
+   "detail": {
+    "arrival_cue": 1,
+    "arrival_signal": 1,
+    "bow_cue": 1,
+    "breath_cue": 1,
+    "entry_signal": 1,
+    "exit_signal": 1,
+    "footstep": 8,
+    "gesture_cue": 8
+   },
+   "name": "event_subscriptions",
+   "ok": true
+  },
+  {
+   "detail": {
+    "paused_blocks": [
+     {
+      "from": 96,
+      "to": 125
+     }
+    ],
+    "rate_values": [
+     1.0,
+     1.5
+    ],
+    "seek_frames": [
+     228,
+     255
+    ],
+    "transition_count": 4,
+    "transition_targets": [
+     "walking_in",
+     "presenting",
+     "exiting",
+     "offstage"
+    ]
+   },
+   "name": "interruption_transitions",
+   "ok": true
+  },
+  {
+   "detail": [
+    {
+     "frame": 0,
+     "state": "waiting"
+    },
+    {
+     "frame": 41,
+     "state": "walking_in"
+    },
+    {
+     "frame": 145,
+     "state": "presenting"
+    },
+    {
+     "frame": 326,
+     "state": "exiting"
+    },
+    {
+     "frame": 401,
+     "state": "offstage"
+    }
+   ],
+   "name": "state_trajectory",
+   "ok": true
+  },
+  {
+   "detail": {
+    "event_total": 22,
+    "frame_count": 510,
+    "worst_frame_jump": {
+     "distance": 0.472488,
+     "frame": 40
+    }
+   },
+   "name": "playback_frames",
+   "ok": true
+  }
+ ],
+ "dt": 0.03333333333333333,
+ "event_counts": {
+  "arrival_cue": 1,
+  "arrival_signal": 1,
+  "bow_cue": 1,
+  "breath_cue": 1,
+  "entry_signal": 1,
+  "exit_signal": 1,
+  "footstep": 8,
+  "gesture_cue": 8
+ },
+ "event_total": 22,
+ "final_state": "offstage",
+ "frame_count": 510,
+ "interruptions": {
+  "paused_blocks": [
+   {
+    "from": 96,
+    "to": 125
+   }
+  ],
+  "rate_values": [
+   1.0,
+   1.5
+  ],
+  "seek_frames": [
+   228,
+   255
+  ],
+  "transition_count": 4,
+  "transition_targets": [
+   "walking_in",
+   "presenting",
+   "exiting",
+   "offstage"
+  ]
+ },
+ "passed": true,
+ "playback_frames_sha256": "3e8153556d9877b50253f695c5f9310d92f29713894bf757fcba7419f1d1655c",
+ "release": "stage-actor-runner",
+ "runtime_config_sha256": "939231ba304af7cf59bf96878f619d6a3d713b5c36dfb1e5a6853bc3aeae381d",
+ "seek_policy": "suppress",
+ "state_path": [
+  {
+   "frame": 0,
+   "state": "waiting"
+  },
+  {
+   "frame": 41,
+   "state": "walking_in"
+  },
+  {
+   "frame": 145,
+   "state": "presenting"
+  },
+  {
+   "frame": 326,
+   "state": "exiting"
+  },
+  {
+   "frame": 401,
+   "state": "offstage"
+  }
+ ],
+ "subscription_counts": {
+  "arrival_cue": 1,
+  "arrival_signal": 1,
+  "bow_cue": 1,
+  "breath_cue": 1,
+  "entry_signal": 1,
+  "exit_signal": 1,
+  "footstep": 8,
+  "gesture_cue": 8
+ },
+ "version": "1.0.0",
+ "worst_frame_jump": {
+  "distance": 0.472488,
+  "frame": 40
+ }
+}

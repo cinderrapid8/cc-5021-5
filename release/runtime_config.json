@@ -1,0 +1,123 @@
+{
+ "event_subscriptions": [
+  {
+   "max_count": 8,
+   "min_count": 8,
+   "name": "footstep"
+  },
+  {
+   "max_count": 8,
+   "min_count": 8,
+   "name": "gesture_cue"
+  },
+  {
+   "max_count": 1,
+   "min_count": 1,
+   "name": "breath_cue"
+  },
+  {
+   "max_count": 1,
+   "min_count": 1,
+   "name": "arrival_cue"
+  },
+  {
+   "max_count": 1,
+   "min_count": 1,
+   "name": "bow_cue"
+  },
+  {
+   "max_count": 1,
+   "min_count": 1,
+   "name": "entry_signal"
+  },
+  {
+   "max_count": 1,
+   "min_count": 1,
+   "name": "arrival_signal"
+  },
+  {
+   "max_count": 1,
+   "min_count": 1,
+   "name": "exit_signal"
+  }
+ ],
+ "expected": {
+  "event_total": 22,
+  "final_state": "offstage",
+  "frame_count": 510,
+  "max_frame_jump": 0.6,
+  "state_path": [
+   "waiting",
+   "walking_in",
+   "presenting",
+   "exiting",
+   "offstage"
+  ]
+ },
+ "format": 1,
+ "parameters": [
+  {
+   "name": "entry_cue",
+   "required": true,
+   "type": "bool"
+  },
+  {
+   "name": "exit_cue",
+   "required": true,
+   "type": "bool"
+  }
+ ],
+ "sample": {
+  "frame_rate": 30.0,
+  "script": [
+   {
+    "at": 30,
+    "cmd": "set",
+    "name": "entry_cue",
+    "value": true
+   },
+   {
+    "at": 96,
+    "cmd": "pause"
+   },
+   {
+    "at": 126,
+    "cmd": "resume"
+   },
+   {
+    "at": 150,
+    "cmd": "rate",
+    "value": 1.5
+   },
+   {
+    "at": 210,
+    "cmd": "rate",
+    "value": 1.0
+   },
+   {
+    "at": 228,
+    "cmd": "seek",
+    "time": 8.7
+   },
+   {
+    "at": 255,
+    "cmd": "seek",
+    "time": 6.0
+   },
+   {
+    "at": 315,
+    "cmd": "set",
+    "name": "exit_cue",
+    "value": true
+   },
+   {
+    "at": 450,
+    "cmd": "set",
+    "name": "entry_cue",
+    "value": false
+   }
+  ],
+  "seconds": 17.0
+ },
+ "seek_policy": "suppress"
+}

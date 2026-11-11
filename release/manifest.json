@@ -1,0 +1,43 @@
+{
+ "evidence": "evidence.json",
+ "format": 1,
+ "release": "stage-actor-runner",
+ "required_checks": [
+  "resource_references",
+  "parameter_types",
+  "event_subscriptions",
+  "interruption_transitions",
+  "state_trajectory",
+  "playback_frames"
+ ],
+ "resources": {
+  "bundle": {
+   "clips": [
+    "exit",
+    "gesture",
+    "gone",
+    "idle",
+    "walk_in"
+   ],
+   "path": "bundle.json",
+   "sha256": "73634ba29c6ee8e235b58f5d72a1e190b3b044c00974a6410f94e06617916947",
+   "states": [
+    "exiting",
+    "offstage",
+    "presenting",
+    "waiting",
+    "walking_in"
+   ]
+  },
+  "runtime_config": {
+   "path": "runtime_config.json",
+   "sha256": "939231ba304af7cf59bf96878f619d6a3d713b5c36dfb1e5a6853bc3aeae381d"
+  }
+ },
+ "runner": {
+  "entry": "run_actor.py",
+  "module": "stageactor.runtime",
+  "requires": "python3"
+ },
+ "version": "1.0.0"
+}

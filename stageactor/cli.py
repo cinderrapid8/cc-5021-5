@@ -68,13 +68,36 @@ def verify_roundtrip(graph_path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="虚拟舞台演员动作控制系统")
-    parser.add_argument("command", choices=["demo", "verify"],
-                        help="demo: 构建并回放；verify: 从已保存状态图重建核对")
+    parser.add_argument("command",
+                        choices=["demo", "verify", "release", "selfcheck"],
+                        help="demo: 构建并回放；verify: 从已保存状态图重建核对；"
+                             "release: 生成发布包并自检；selfcheck: 自检现有发布包")
     parser.add_argument("--out", default="out", help="输出目录")
+    parser.add_argument("--package", default="release", help="发布包目录")
     parser.add_argument("--seek-policy", choices=[ActorMachine.SEEK_SUPPRESS,
                                                    ActorMachine.SEEK_REPLAY],
                         default=ActorMachine.SEEK_SUPPRESS)
     args = parser.parse_args(argv)
+
+    if args.command == "release":
+        from .release import produce_release
+        evidence = produce_release(args.package)
+        print("== 发布包构建与自检完成 ==")
+        print(json.dumps(evidence, ensure_ascii=False, indent=2))
+        print(f"发布包目录: {os.path.abspath(args.package)}")
+        return 0
+
+    if args.command == "selfcheck":
+        from .release import ReleaseError
+        from .runtime import start_package
+        try:
+            evidence = start_package(args.package, args.out)
+        except ReleaseError as exc:
+            print(f"自检失败，拒绝采用产物:\n{exc}", file=sys.stderr)
+            return 2
+        print("== 发布包自检通过 ==")
+        print(json.dumps(evidence, ensure_ascii=False, indent=2))
+        return 0
 
     if args.command == "demo":
         runner, report, graph_path, replay_path = run_demo(

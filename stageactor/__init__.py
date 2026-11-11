@@ -6,10 +6,11 @@ from .clip import Keyframe, EventMarker, AnimationClip
 from .graph import Condition, Transition, State, StateGraph, Bundle
 from .machine import ActorMachine
 from .replay import ReplayRunner, FrameRecord
+from .release import ReleaseError
 
 __all__ = [
     "Bone", "Skeleton", "Pose", "fk", "blend_pose", "identity_pose",
     "Keyframe", "EventMarker", "AnimationClip",
     "Condition", "Transition", "State", "StateGraph", "Bundle",
-    "ActorMachine", "ReplayRunner", "FrameRecord",
+    "ActorMachine", "ReplayRunner", "FrameRecord", "ReleaseError",
 ]
